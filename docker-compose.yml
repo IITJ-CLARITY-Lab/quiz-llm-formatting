@@ -1,0 +1,9 @@
+services:
+  quiz-llm-formatting:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: quiz-llm-formatting:latest
+    ports:
+      - "12000:12000"
+    restart: unless-stopped

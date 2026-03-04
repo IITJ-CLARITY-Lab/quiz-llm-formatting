@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+question_001.png
+quiz_questions_to_images.py
+requirements_quiz_images.txt
+README_quiz_images.md
