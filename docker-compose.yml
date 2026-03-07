@@ -1,9 +1,37 @@
 services:
-  quiz-llm-formatting:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-quiz_llm_studio}
+      POSTGRES_USER: ${POSTGRES_USER:-quiz_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-quiz_admin_password}
+    volumes:
+      - quiz_llm_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-quiz_admin} -d ${POSTGRES_DB:-quiz_llm_studio}"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    restart: unless-stopped
+
+  quiz-llm-studio:
     build:
       context: .
       dockerfile: Dockerfile
-    image: quiz-llm-formatting:latest
+    image: quiz-llm-studio:latest
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-quiz_admin}:${POSTGRES_PASSWORD:-quiz_admin_password}@db:5432/${POSTGRES_DB:-quiz_llm_studio}
+      SENDER_EMAIL: ${SENDER_EMAIL:-m25ai2043@iitj.ac.in}
+      SENDER_PASSWORD: ${SENDER_PASSWORD:-jqzg bamx isoj kvrf}
+      DEFAULT_ADMIN_EMAIL: ${DEFAULT_ADMIN_EMAIL:-m25ai2043@iitj.ac.in}
+      DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD:-1312}
+      DEFAULT_ADMIN_USERNAME: ${DEFAULT_ADMIN_USERNAME:-m25ai2043}
     ports:
       - "12000:12000"
     restart: unless-stopped
+
+volumes:
+  quiz_llm_postgres_data:

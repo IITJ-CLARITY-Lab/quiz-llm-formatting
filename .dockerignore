@@ -3,6 +3,8 @@ __pycache__/
 *.pyo
 *.pyd
 question_001.png
+.git/
+.gitignore
 quiz_questions_to_images.py
 requirements_quiz_images.txt
 README_quiz_images.md

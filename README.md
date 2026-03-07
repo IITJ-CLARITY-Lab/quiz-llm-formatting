@@ -1,59 +1,33 @@
-# Quiz LLM Formatting
+# Quiz LLM Studio
 
-Teacher-friendly tooling to generate quiz-question images with exam-warning watermarks.
+Teacher-facing quiz image generation with admin approval, usage oversight, and persistent history.
 
-## What This Provides
+## What changed
 
-- Streamlit app for teachers to build one or more quiz questions.
-- Each question supports:
-  - Question text
-  - Optional question image (shown before question text)
-  - Option text and/or option images
-- Repeated watermark application on:
-  - Final rendered question image
-  - Any embedded uploaded image used in question/options
-- Docker and Docker Compose setup to run on `localhost:12000`.
+- Teacher signup now creates a `pending` account that must be approved by the admin.
+- Admin pages cover dashboard metrics, approvals, user IDs, disable/delete controls, and workspace impersonation.
+- Quiz requests are stored in Postgres so teachers and admins can review them later.
+- The stack runs as a two-service Docker Compose package: Streamlit app + Postgres database.
 
-## Repository Contents
-
-- `app.py`: Streamlit teacher UI.
-- `quiz_questions_to_images.py`: CLI generator for URL-based extraction/rendering.
-- `requirements_streamlit_app.txt`: Streamlit app dependencies.
-- `requirements_quiz_images.txt`: CLI pipeline dependencies.
-- `Dockerfile`: Container image for Streamlit app.
-- `docker-compose.yml`: Compose service exposing `12000:12000`.
-- `sample_question.png`: Example generated output.
-
-## Run With Docker Compose
+## Start
 
 ```bash
-cd quiz-llm-formatting
-docker compose up
+docker compose up --build
 ```
 
-Open:
+The app will be available at [http://localhost:12000](http://localhost:12000).
 
-```text
-http://localhost:12000
-```
+## Bootstrap admin
 
-Stop:
+The seed admin now follows the same default values used in the sibling ClassCam project:
 
-```bash
-docker compose down
-```
+- Email: `m25ai2043@iitj.ac.in`
+- Password: `1312`
 
-## Run Locally (Without Docker)
+If an account with that email already exists, the app skips reseeding even if the password was changed later.
 
-```bash
-python3 -m pip install -r requirements_streamlit_app.txt
-streamlit run app.py --server.address 0.0.0.0 --server.port 12000
-```
+## Notes
 
-## Sample Output
-
-![Sample Question](sample_question.png)
-
-## License
-
-This project is licensed under the MIT License. See `LICENSE`.
+- “View as user” is implemented as an explicit admin action in the Users page. Browser right-click menus are not controllable from Streamlit.
+- Quiz history stores the question content and uploaded images inside Postgres so requests can be re-rendered later.
+- OTP email delivery uses the same sender defaults that existed in ClassCam commit `3dc8e00`, while still allowing overrides through environment variables.
