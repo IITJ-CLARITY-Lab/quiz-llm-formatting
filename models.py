@@ -57,6 +57,8 @@ class User(Base):
     otp_generated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     email_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    remember_token_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    remember_token_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     approved_by: Mapped["User | None"] = relationship(remote_side=[id], foreign_keys=[approved_by_id])
     requests: Mapped[list["QuizRequest"]] = relationship(

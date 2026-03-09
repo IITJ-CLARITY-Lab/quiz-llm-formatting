@@ -54,6 +54,12 @@ def run_migrations(session: Session) -> None:
         session.execute(text("ALTER TABLE users ADD COLUMN otp_generated_at TIMESTAMP"))
     if email_verified_added:
         session.execute(text("ALTER TABLE users ADD COLUMN email_verified_at TIMESTAMP"))
+    if "remember_token_hash" not in existing_columns:
+        session.execute(text("ALTER TABLE users ADD COLUMN remember_token_hash VARCHAR(255)"))
+    elif engine.dialect.name == "postgresql":
+        session.execute(text("ALTER TABLE users ALTER COLUMN remember_token_hash TYPE VARCHAR(255)"))
+    if "remember_token_expires_at" not in existing_columns:
+        session.execute(text("ALTER TABLE users ADD COLUMN remember_token_expires_at TIMESTAMP"))
 
     if email_verified_added:
         session.execute(

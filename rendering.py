@@ -24,7 +24,7 @@ class OptionInput:
 class QuestionInput:
     text: str
     marks: str
-    question_image_bytes: bytes | None
+    question_image_bytes: list[bytes]
     options: list[OptionInput]
 
 
@@ -47,9 +47,12 @@ class RenderSettings:
 
 def load_font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
     candidates = [
+        "DejaVuSans.ttf",
+        "DejaVuSans-Bold.ttf",
         "/System/Library/Fonts/Supplemental/Arial.ttf",
         "/System/Library/Fonts/Supplemental/Helvetica.ttf",
         "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
     ]
     for font_path in candidates:
         try:
@@ -113,11 +116,14 @@ def draw_tiled_watermark(
     draw_opacity = max(0, min(255, opacity))
     tile_step_x = step_x if step_x > 0 else text_w + 180
     tile_step_y = step_y if step_y > 0 else text_h + 110
+    dark_alpha = min(255, max(draw_opacity, 32))
+    light_alpha = min(255, max(int(draw_opacity * 0.85), 28))
 
     for row_idx, y in enumerate(range(-text_h, base.height + tile_step_y, tile_step_y)):
         row_offset = -(text_w // 2) if (row_idx % 2) else 0
         for x in range(-text_w + row_offset, base.width + tile_step_x, tile_step_x):
-            draw.text((x, y), text, fill=(58, 58, 58, draw_opacity), font=font)
+            draw.text((x + 2, y + 2), text, fill=(255, 255, 255, light_alpha), font=font)
+            draw.text((x, y), text, fill=(46, 46, 46, dark_alpha), font=font)
 
     base.alpha_composite(overlay)
 
@@ -152,12 +158,69 @@ def apply_watermark_to_embedded_image(
     draw_tiled_watermark(
         element,
         watermark_text,
-        opacity=max(watermark_opacity + 8, 16),
-        size=max(14, watermark_size - 6),
-        step_x=180,
-        step_y=80,
+        opacity=max(watermark_opacity + 45, 90),
+        size=max(18, watermark_size - 2),
+        step_x=max(120, watermark_size * 7),
+        step_y=max(70, watermark_size * 3),
     )
     return element
+
+
+def render_compact_image_grid(
+    canvas: Image.Image,
+    images: list[Image.Image],
+    x: int,
+    y: int,
+    max_width: int,
+    max_height: int,
+    gap: int = 18,
+) -> int:
+    prepared_images = [image for image in images if image is not None]
+    if not prepared_images:
+        return y
+
+    if len(prepared_images) == 1:
+        columns = 1
+    elif len(prepared_images) <= 4:
+        columns = 2
+    else:
+        columns = 3
+
+    cell_width = max(140, (max_width - gap * (columns - 1)) // columns)
+    if columns == 1:
+        cell_height = max_height
+    elif columns == 2:
+        cell_height = max(130, int(max_height * 0.82))
+    else:
+        cell_height = max(110, int(max_height * 0.68))
+
+    resized_images = [resize_to_fit(image, max_width=cell_width, max_height=cell_height) for image in prepared_images]
+
+    row_images: list[Image.Image] = []
+    row_height = 0
+    cursor_y = y
+    for image in resized_images:
+        row_images.append(image)
+        row_height = max(row_height, image.height)
+        if len(row_images) == columns:
+            for col_idx, row_image in enumerate(row_images):
+                slot_x = x + col_idx * (cell_width + gap)
+                image_x = slot_x + max(0, (cell_width - row_image.width) // 2)
+                image_y = cursor_y + max(0, (row_height - row_image.height) // 2)
+                canvas.alpha_composite(row_image, (image_x, image_y))
+            cursor_y += row_height + gap
+            row_images = []
+            row_height = 0
+
+    if row_images:
+        for col_idx, row_image in enumerate(row_images):
+            slot_x = x + col_idx * (cell_width + gap)
+            image_x = slot_x + max(0, (cell_width - row_image.width) // 2)
+            image_y = cursor_y + max(0, (row_height - row_image.height) // 2)
+            canvas.alpha_composite(row_image, (image_x, image_y))
+        cursor_y += row_height + gap
+
+    return cursor_y
 
 
 def draw_wrapped_block(
@@ -192,18 +255,6 @@ def render_question_image(question: QuestionInput, settings: RenderSettings) -> 
         draw.text((x, y), f"[Marks: {question.marks.strip()}]", fill=(25, 25, 25), font=marks_font)
         y += int(settings.marks_font_size * 1.7)
 
-    q_img = open_image_from_bytes(question.question_image_bytes)
-    if q_img is not None:
-        q_img = resize_to_fit(q_img, max_width=max_width, max_height=settings.question_image_max_height)
-        q_img = apply_watermark_to_embedded_image(
-            q_img,
-            watermark_text=settings.watermark_text,
-            watermark_size=settings.watermark_size,
-            watermark_opacity=settings.watermark_opacity,
-        )
-        canvas.alpha_composite(q_img, (x, y))
-        y += q_img.height + 20
-
     question_label = question.text.strip() or "(No question text provided)"
     y = draw_wrapped_block(
         draw,
@@ -216,6 +267,31 @@ def render_question_image(question: QuestionInput, settings: RenderSettings) -> 
         fill=(29, 29, 29),
     )
     y += 16
+
+    question_images = []
+    for image_bytes in question.question_image_bytes:
+        q_img = open_image_from_bytes(image_bytes)
+        if q_img is None:
+            continue
+        question_images.append(
+            apply_watermark_to_embedded_image(
+                q_img,
+                watermark_text=settings.watermark_text,
+                watermark_size=settings.watermark_size,
+                watermark_opacity=settings.watermark_opacity,
+            )
+        )
+
+    if question_images:
+        y = render_compact_image_grid(
+            canvas,
+            question_images,
+            x=x,
+            y=y,
+            max_width=max_width,
+            max_height=settings.question_image_max_height,
+        )
+        y += 4
 
     for idx, option in enumerate(question.options):
         if idx >= 26:
@@ -267,17 +343,17 @@ def render_question_image(question: QuestionInput, settings: RenderSettings) -> 
 def payload_to_render_settings(payload: dict) -> RenderSettings:
     settings = payload.get("settings", {})
     return RenderSettings(
-        width=int(settings.get("width", 1600)),
-        height=int(settings.get("height", 900)),
-        padding=int(settings.get("padding", 90)),
-        question_font_size=int(settings.get("question_font_size", 34)),
-        option_font_size=int(settings.get("option_font_size", 34)),
-        marks_font_size=int(settings.get("marks_font_size", 28)),
-        question_image_max_height=int(settings.get("question_image_max_height", 260)),
-        option_image_max_height=int(settings.get("option_image_max_height", 170)),
+        width=int(settings.get("width", 1400)),
+        height=int(settings.get("height", 920)),
+        padding=int(settings.get("padding", 82)),
+        question_font_size=int(settings.get("question_font_size", 46)),
+        option_font_size=int(settings.get("option_font_size", 41)),
+        marks_font_size=int(settings.get("marks_font_size", 34)),
+        question_image_max_height=int(settings.get("question_image_max_height", 280)),
+        option_image_max_height=int(settings.get("option_image_max_height", 180)),
         watermark_text=str(settings.get("watermark_text", "")),
-        watermark_opacity=int(settings.get("watermark_opacity", 10)),
-        watermark_size=int(settings.get("watermark_size", 22)),
+        watermark_opacity=int(settings.get("watermark_opacity", 46)),
+        watermark_size=int(settings.get("watermark_size", 30)),
         watermark_step_x=int(settings.get("watermark_step_x", 0)),
         watermark_step_y=int(settings.get("watermark_step_y", 0)),
     )
@@ -286,6 +362,18 @@ def payload_to_render_settings(payload: dict) -> RenderSettings:
 def payload_to_question_inputs(payload: dict) -> list[QuestionInput]:
     questions: list[QuestionInput] = []
     for question in payload.get("questions", []):
+        question_images = [
+            decoded
+            for decoded in (
+                decode_image_bytes(encoded_image)
+                for encoded_image in question.get("question_images_b64", [])
+            )
+            if decoded is not None
+        ]
+        legacy_question_image = decode_image_bytes(question.get("question_image_b64"))
+        if not question_images and legacy_question_image is not None:
+            question_images = [legacy_question_image]
+
         options = [
             OptionInput(
                 text=str(option.get("text", "")),
@@ -297,7 +385,7 @@ def payload_to_question_inputs(payload: dict) -> list[QuestionInput]:
             QuestionInput(
                 text=str(question.get("text", "")),
                 marks=str(question.get("marks", "")),
-                question_image_bytes=decode_image_bytes(question.get("question_image_b64")),
+                question_image_bytes=question_images,
                 options=options,
             )
         )

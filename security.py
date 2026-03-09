@@ -24,6 +24,12 @@ def hash_otp(otp: str) -> str:
     return generate_password_hash(otp)
 
 
+def hash_session_token(token: str) -> str:
+    if not token:
+        raise ValueError("Session token cannot be empty.")
+    return generate_password_hash(token)
+
+
 def verify_password(password: str, stored_hash: str) -> bool:
     if not password or not stored_hash:
         return False
@@ -62,3 +68,12 @@ def verify_otp(otp: str, stored_value: str) -> bool:
             return False
 
     return hmac.compare_digest(otp, stored_value)
+
+
+def verify_session_token(token: str, stored_hash: str) -> bool:
+    if not token or not stored_hash:
+        return False
+    try:
+        return check_password_hash(stored_hash, token)
+    except ValueError:
+        return False
