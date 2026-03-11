@@ -15,7 +15,7 @@ Teacher-facing quiz image generation with admin approval, usage oversight, and p
 docker compose up --build
 ```
 
-The app will be available at [http://localhost:12000](http://localhost:12000).
+The app will be available at [http://localhost:11001](http://localhost:11001).
 
 ## Bootstrap admin
 

@@ -30,7 +30,7 @@ services:
       DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD:-1312}
       DEFAULT_ADMIN_USERNAME: ${DEFAULT_ADMIN_USERNAME:-m25ai2043}
     ports:
-      - "12000:12000"
+      - "11001:11001"
     restart: unless-stopped
 
 volumes:

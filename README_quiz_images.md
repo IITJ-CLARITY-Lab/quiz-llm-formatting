@@ -20,7 +20,7 @@ Run app:
 streamlit run "/Users/lakshaychawla/Downloads/quiz llm formatting/app.py"
 ```
 
-## Docker Run (Port 12000)
+## Docker Run (Port 11001)
 
 Build:
 
@@ -31,13 +31,13 @@ docker build -t quiz-llm-formatting "/Users/lakshaychawla/Downloads/quiz llm for
 Run:
 
 ```bash
-docker run --rm -p 12000:12000 quiz-llm-formatting
+docker run --rm -p 11001:11001 quiz-llm-formatting
 ```
 
 Then open:
 
 ```text
-http://localhost:12000
+http://localhost:11001
 ```
 
 ## Docker Compose (Recommended)
