@@ -322,7 +322,7 @@ def apply_theme() -> None:
         }
         .block-container {
             padding-top: 4.6rem;
-            padding-bottom: 2.2rem;
+            padding-bottom: 3.5rem;
         }
         @media (max-width: 768px) {
             .block-container {
@@ -464,7 +464,35 @@ def apply_theme() -> None:
             font-size: 0.9rem;
             color: var(--text-muted);
         }
+        .app-footer {
+            margin-top: 2.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.92rem;
+        }
+        .app-footer a {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .app-footer a:hover {
+            color: var(--accent-strong);
+            text-decoration: underline;
+        }
         </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_footer() -> None:
+    st.markdown(
+        """
+        <div class="app-footer">
+            Created by <a href="https://lakshay-13.github.io/" target="_blank" rel="noopener noreferrer">Lakshay Chawla</a>
+        </div>
         """,
         unsafe_allow_html=True,
     )
@@ -1957,6 +1985,7 @@ def main() -> None:
     auth_user_id = st.session_state.get("auth_user_id")
     if not auth_user_id:
         render_public_landing()
+        render_footer()
         return
 
     with get_session() as session:
@@ -1997,6 +2026,8 @@ def main() -> None:
             render_history_page(session, effective_user, read_only_teacher_view)
         else:
             st.error("Unsupported page.")
+
+    render_footer()
 
 
 if __name__ == "__main__":
