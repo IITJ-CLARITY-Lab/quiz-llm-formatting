@@ -1,5 +1,7 @@
 # Quiz LLM Studio
 
+![Sample watermarked quiz output](medium_assets/user_attached_quiz_e_highlight_cropped.png)
+
 Teacher-facing quiz image generation with admin approval, usage oversight, and persistent history.
 
 ## What changed
