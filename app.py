@@ -1197,25 +1197,28 @@ def render_public_landing() -> None:
                 submitted = st.form_submit_button("Log in", type="primary")
 
             if submitted:
-                with get_session() as session:
-                    user = lookup_user_by_identifier(session, identifier)
-                    if user is None or not verify_password(password, user.password_hash):
-                        st.error("Invalid credentials.")
-                    elif user.role == UserRole.TEACHER and user.email_verified_at is None:
-                        st.warning("Verify your email with the OTP first, then wait for admin approval.")
-                    elif user.status == UserStatus.PENDING:
-                        st.warning("Your account is still pending admin approval.")
-                    elif user.status == UserStatus.REJECTED:
-                        st.error("This access request was rejected. Ask the admin to reopen it.")
-                    elif user.status == UserStatus.DISABLED:
-                        st.error("This account is disabled.")
-                    else:
-                        user.last_login_at = utc_now()
-                        log_event(session, "login_success", actor_user_id=user.id, target_user_id=user.id)
-                        establish_login_session(session, user, remember_device=remember_device)
-                        session.commit()
-                        set_impersonation(None)
-                        st.rerun()
+                if not identifier.strip() or not password:
+                    st.error("Enter both your login ID or email and your password.")
+                else:
+                    with get_session() as session:
+                        user = lookup_user_by_identifier(session, identifier)
+                        if user is None or not verify_password(password, user.password_hash):
+                            st.error("Invalid credentials. Check your login ID/email and password, then try again.")
+                        elif user.role == UserRole.TEACHER and user.email_verified_at is None:
+                            st.warning("Verify your email with the OTP first, then wait for admin approval.")
+                        elif user.status == UserStatus.PENDING:
+                            st.warning("Your account is still pending admin approval.")
+                        elif user.status == UserStatus.REJECTED:
+                            st.error("This access request was rejected. Ask the admin to reopen it.")
+                        elif user.status == UserStatus.DISABLED:
+                            st.error("This account is disabled.")
+                        else:
+                            user.last_login_at = utc_now()
+                            log_event(session, "login_success", actor_user_id=user.id, target_user_id=user.id)
+                            establish_login_session(session, user, remember_device=remember_device)
+                            session.commit()
+                            set_impersonation(None)
+                            st.rerun()
 
         with tab_signup:
             st.caption("Request access to use the quiz image generator for secure online assessments.")
