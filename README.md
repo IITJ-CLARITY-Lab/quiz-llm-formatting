@@ -10,6 +10,7 @@ Teacher-facing quiz image generation with admin approval, usage oversight, and p
 - Admin pages cover dashboard metrics, approvals, user IDs, disable/delete controls, and workspace impersonation.
 - Quiz requests are stored in Postgres so teachers and admins can review them later.
 - The stack runs as a two-service Docker Compose package: Streamlit app + Postgres database.
+- Default watermark copy now uses a shorter legal-style refusal aimed at paper-checker/reviewer override claims.
 
 ## Start
 
